@@ -1,4 +1,4 @@
-# Dedupe-Docker
+# Great Expectations
 
 This repo contains a `Dockerfile` to build
 [Docker](https://www.docker.com) image for the
