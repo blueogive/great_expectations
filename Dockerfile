@@ -16,38 +16,16 @@ FROM python:3.7.7
 USER root
 
 RUN apt-get update --fix-missing \
-    && apt-get install -y --no-install-recommends \
-        # bzip2 \
-        # ca-certificates \
-        # curl \
-        # gdebi-core \
-        # git \
-        # gnupg2 \
-        # gosu \
-        # libapparmor1 \
-        # libclang-dev \
-        # libssl1.0-dev \
-        # locales \
-        # lsb-release \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        --no-install-recommends \
+        locales \
         make \
-        # psmisc \
-        # sudo \
-        # wget \
-        # build-essential \
-        # fonts-texgyre \
-        # gfortran \
-        # default-jdk \
-        # dpkg \
-        # pandoc \
-        # pandoc-citeproc \
         unzip \
-        # less \
-        # libgomp1 \
-        # libpango-1.0-0 \
-        # libxt6 \
-        # libsm6 \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
+    && dpkg-reconfigure --frontend=noninteractive locales \
+    && update-locale LANG=en_US.UTF-8
 
 ## Install Microsoft and Postgres ODBC drivers and SQL commandline tools
 RUN curl -o microsoft.asc https://packages.microsoft.com/keys/microsoft.asc \
@@ -64,9 +42,9 @@ RUN curl -o microsoft.asc https://packages.microsoft.com/keys/microsoft.asc \
     && rm /etc/apt/sources.list.d/mssql-release.list
 
 ## Set environment variables
-ENV LC_ALL="en_US.UTF-8" \
-    LANG="en_US.UTF-8" \
-    LANGUAGE="en_US.UTF-8" \
+ENV LC_ALL=en_US.UTF-8 \
+    LANG=en_US.UTF-8 \
+    LANGUAGE=en_US.UTF-8 \
     PATH=/opt/conda/bin:/opt/mssql-tools/bin:${PATH} \
     SHELL=/bin/bash \
     CT_USER=docker \
@@ -74,8 +52,6 @@ ENV LC_ALL="en_US.UTF-8" \
     CT_GID=100 \
     CT_FMODE=0775 \
     CONDA_DIR=/opt/conda
-
-ENV HOME=/home/${CT_USER}
 
 RUN wget --quiet \
     https://repo.anaconda.com/miniconda/Miniconda3-4.7.12.1-Linux-x86_64.sh \
@@ -94,9 +70,10 @@ COPY fix-permissions /usr/local/bin/fix-permissions
 RUN useradd --create-home --uid ${CT_UID} --gid ${CT_GID} --shell ${SHELL} ${CT_USER} \
     && chmod 0755 /usr/local/bin/fix-permissions
 
+ENV HOME=/home/${CT_USER}
+
 RUN fix-permissions ${CONDA_DIR} \
-    && fix-permissions ${HOME} \
-    && fix-permissions ${HOME}/.conda
+    && fix-permissions ${HOME}
 
 WORKDIR ${HOME}
 
@@ -116,6 +93,7 @@ RUN /opt/conda/bin/conda install conda-build --yes \
 
 RUN echo ". /opt/conda/etc/profile.d/conda.sh" >> ${HOME}/.bashrc && \
     echo "conda activate base" >> ${HOME}/.bashrc && \
+    echo "export PATH=${HOME}/.local/bin:${PATH}" >> ${HOME}/.bashrc && \
     mkdir ${HOME}/work
 SHELL [ "/bin/bash", "--login", "-c"]
 ARG PIP_REQ_FILE=${PIP_REQ_FILE}
@@ -129,7 +107,10 @@ RUN source ${HOME}/.bashrc \
       -r ${PIP_REQ_FILE} \
     && rm ${PIP_REQ_FILE} \
     && mkdir -p .config/pip \
-    && fix-permissions ${HOME}/work
+    && fix-permissions ${HOME}/work \
+    && rm -rf ${HOME}/.cache/pip/* \
+    && rm /opt/conda/pkgs/*.tar.bz2 \
+    && rm /opt/conda/pkgs/cache/*
 COPY pip.conf .config/pip/pip.conf
 WORKDIR ${HOME}/work
 

@@ -1,1 +1,6 @@
 great_expectations
+Click
+jinja2
+requests
+six
+altair
