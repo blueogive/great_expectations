@@ -1,0 +1,7 @@
+# -*- coding: utf-8 -*-
+great_expectations>=0.9.11
+Click
+jinja2
+requests
+six
+altair

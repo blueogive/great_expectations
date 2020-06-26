@@ -88,6 +88,7 @@ RUN /opt/conda/bin/conda update -n base -c defaults conda \
 RUN /opt/conda/bin/conda install conda-build --yes \
     && /opt/conda/bin/conda env update -n base --file ${CONDA_ENV_FILE} \
     && /opt/conda/bin/conda build purge-all \
+    && /opt/conda/bin/conda clean -atipsy \
     && rm ${CONDA_ENV_FILE} \
     && fix-permissions ${HOME}
 
@@ -108,9 +109,7 @@ RUN source ${HOME}/.bashrc \
     && rm ${PIP_REQ_FILE} \
     && mkdir -p .config/pip \
     && fix-permissions ${HOME}/work \
-    && rm -rf ${HOME}/.cache/pip/* \
-    && rm /opt/conda/pkgs/*.tar.bz2 \
-    && rm /opt/conda/pkgs/cache/*
+    && rm -rf ${HOME}/.cache/pip/*
 COPY pip.conf .config/pip/pip.conf
 WORKDIR ${HOME}/work
 
